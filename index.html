@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGAP - Cafe XXI Inventory</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  iframe { width: 100%; height: 100%; border: none; display: block; }
+</style>
+</head>
+<body>
+<!-- PENTING: allow="camera" WAJIB ada.
+     Izin kamera didelegasikan PER LAPIS iframe. Tanpa atribut ini,
+     navigator.mediaDevices.getUserMedia() di dalam SIGAP selalu gagal
+     dengan "NotAllowedError: Permission denied" — walaupun user sudah
+     mengizinkan kamera di browser. Akibatnya Scan Barcode live mati
+     dan aplikasi jatuh ke mode foto. -->
+<iframe
+  src="https://script.google.com/macros/s/AKfycbzxm8y3H40_nW4sfYsJ5r9Ugs1Hu9sM4kGWDQnzmhc6roVlN0GjKyLMo5e6bHqhayA_/exec"
+  allow="camera; fullscreen"
+  allowfullscreen></iframe>
+</body>
+</html>
