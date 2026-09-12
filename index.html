@@ -338,6 +338,25 @@
         }
         #recipe-modal.show { display:flex; animation:fadeSlide 0.2s ease; }
 
+        #convert-modal {
+            display:none; position:fixed; inset:0;
+            background:var(--overlay-bg); backdrop-filter:blur(10px);
+            z-index:9991; align-items:center; justify-content:center; padding:1rem;
+        }
+        #convert-modal.show { display:flex; animation:fadeSlide 0.2s ease; }
+        .cvt-preview {
+            margin:0; padding:11px 13px; border-radius:12px;
+            background:var(--accent-soft); border:1px solid var(--accent-brd);
+            font-size:0.82rem; font-weight:600; color:var(--text); text-align:center;
+        }
+        .cvt-preview b { color:var(--accent); font-weight:800; }
+        .cvt-uom {
+            display:inline-block; padding:2px 9px; border-radius:7px;
+            background:var(--surface2); border:1px solid var(--border);
+            font-size:0.72rem; font-weight:700; color:var(--text-muted);
+        }
+        .cvt-arrow { color:var(--text-dim); margin:0 4px; }
+
         .rcp-summary { display:flex; flex-wrap:wrap; gap:8px; }
         .rcp-chip {
             display:inline-flex; align-items:center; gap:6px;
@@ -357,6 +376,18 @@
             display:inline-block; margin-right:6px; padding:1px 6px;
             border-radius:6px; background:var(--accent-soft); color:var(--accent);
             font-family:var(--font-mono, monospace); font-size:0.68rem; font-weight:700;
+        }
+        .rcp-chip-btn {
+            cursor:pointer; font-family:var(--font-body);
+            min-height:var(--tap); color:var(--accent);
+        }
+        .rcp-chip-btn:hover { background:var(--accent-soft); border-color:var(--accent-brd); }
+        .rcp-grp-nm { font-size:0.85rem; font-weight:800; color:var(--text); }
+        .rcp-grp-count {
+            display:inline-flex; align-items:center; gap:4px; margin-left:8px;
+            padding:1px 8px; border-radius:99px; background:var(--surface2);
+            border:1px solid var(--border);
+            font-size:0.66rem; font-weight:700; color:var(--text-muted);
         }
         .rcp-best {
             display:inline-flex; align-items:center; gap:4px; margin-left:6px;
@@ -1763,7 +1794,7 @@
             .dash-cols  { gap:10px !important; }
 
             /* --- Modal: layar penuh --- */
-            #inbound-modal, #out-form-modal, #master-modal, #user-modal, #recipe-modal,
+            #inbound-modal, #out-form-modal, #master-modal, #user-modal, #recipe-modal, #convert-modal,
             #opname-edit-modal, #riwayat-modal, #detail-modal, #exp-alert-modal,
             #smartexp-modal, #barcode-modal, #label-modal, #img-preview-modal, #cam-modal,
             #barcode-print-modal {
@@ -1771,7 +1802,7 @@
                 align-items:stretch !important; justify-content:stretch !important;
             }
             #inbound-modal > div, #out-form-modal > div, #master-modal > div,
-            #recipe-modal > div,
+            #recipe-modal > div, #convert-modal > div,
             #user-modal > div, #opname-edit-modal > div, #riwayat-modal > div,
             #detail-modal > div, #exp-alert-modal > div, #smartexp-modal > .sx-sheet,
             #barcode-modal > .scan-sheet, #label-modal > .nw-sheet,
@@ -1786,7 +1817,7 @@
             #inbound-modal .card-header, #out-form-modal .card-header,
             #smartexp-modal .card-header, #barcode-modal .card-header,
             #exp-alert-modal .card-header, #master-modal .card-header,
-            #recipe-modal .card-header, #user-modal .card-header {
+            #recipe-modal .card-header, #convert-modal .card-header, #user-modal .card-header {
                 position:sticky; top:0; z-index:5;
             }
             /* Isi modal form dirapatkan ke tepi: bungkus ber-padding inline
@@ -3245,14 +3276,14 @@
            agar modal yang ditandai as-sheet benar-benar tampil sebagai sheet. */
         @media (max-width: 640px) {
             #barcode-modal.as-sheet, #exp-alert-modal.as-sheet, #master-modal.as-sheet,
-            #recipe-modal.as-sheet,
+            #recipe-modal.as-sheet, #convert-modal.as-sheet,
             #user-modal.as-sheet, #opname-edit-modal.as-sheet, #detail-modal.as-sheet,
             #riwayat-modal.as-sheet, #img-preview-modal.as-sheet {
                 align-items: flex-end !important; padding: 0 !important;
             }
             #barcode-modal.as-sheet > .scan-sheet,
             #exp-alert-modal.as-sheet > div, #master-modal.as-sheet > div,
-            #recipe-modal.as-sheet > div,
+            #recipe-modal.as-sheet > div, #convert-modal.as-sheet > div,
             #user-modal.as-sheet > div, #opname-edit-modal.as-sheet > div,
             #detail-modal.as-sheet > div, #riwayat-modal.as-sheet > div,
             #img-preview-modal.as-sheet > div {
@@ -3750,6 +3781,62 @@
     <!-- Area cetak khusus (PDF via print) -->
     <div id="ks-print-area"></div>
     <div id="global-print-area"></div>
+
+    <div id="convert-modal" class="as-sheet">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:520px; display:flex; flex-direction:column; overflow:hidden; box-shadow:var(--shadow-xl);">
+            <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; background: linear-gradient(90deg, var(--surface) 0%, var(--surface2) 100%);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i class="ph ph-arrows-left-right" style="color:var(--accent); font-size:1.25rem;"></i>
+                    <span id="convert-modal-title" style="font-size:0.95rem; font-weight:800; color:var(--text);">Tambah Convert</span>
+                </div>
+                <button onclick="closeConvertModal()" title="Tutup" aria-label="Tutup"
+                    style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; padding:6px; border-radius:8px; font-size:1.3rem;">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <div style="padding:20px; display:flex; flex-direction:column; gap:16px;">
+                <input type="hidden" id="convert-row">
+                <input type="hidden" id="convert-orig-item">
+                <input type="hidden" id="convert-orig-uom">
+
+                <div>
+                    <label class="lbl" for="convert-item">Item <span style="color:var(--red);">*</span></label>
+                    <select id="convert-item" placeholder="Ketik / pilih nama item..."></select>
+                    <p style="font-size:0.68rem; color:var(--text-dim); margin:5px 0 0; line-height:1.5;">
+                        Pilih dari Master Item agar cocok dengan data transaksi. Nama di luar Master tetap bisa diketik untuk data lama.
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label class="lbl" for="convert-uom">UOM <span style="color:var(--red);">*</span></label>
+                        <input type="text" id="convert-uom" class="inp" placeholder="Contoh: gln" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="lbl" for="convert-uomhasil">Uom_convert</label>
+                        <input type="text" id="convert-uomhasil" class="inp" placeholder="Contoh: ml" autocomplete="off">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="lbl" for="convert-value">CONVERT <span style="color:var(--red);">*</span></label>
+                    <input type="number" id="convert-value" class="inp" step="0.0001" min="0" placeholder="0"
+                           style="text-align:right; font-weight:700; color:var(--accent);" oninput="_cvtPreview()">
+                </div>
+
+                <p class="cvt-preview" id="convert-preview">1 <b>UOM</b> = <b>0</b> <b>Uom_convert</b></p>
+                <p style="font-size:0.68rem; color:var(--text-dim); margin:0; line-height:1.5;">
+                    UOM adalah satuan gudang yang dipakai di transaksi. CONVERT = berapa <b>Uom_convert</b> dalam 1 UOM.
+                </p>
+            </div>
+            <div style="padding:14px 20px; border-top:1px solid var(--border); background:var(--surface2); display:flex; gap:10px; justify-content:flex-end;">
+                <button onclick="closeConvertModal()" class="btn-ghost">Batal</button>
+                <button onclick="saveConvert()" id="btn-save-convert" class="btn-primary" style="padding:10px 20px;">
+                    <i class="ph ph-floppy-disk"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="recipe-modal" class="as-sheet">
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:520px; display:flex; flex-direction:column; overflow:hidden; box-shadow:var(--shadow-xl);">
@@ -4832,6 +4919,9 @@
                 <button class="tab-btn" id="btn-tab-recipe" onclick="switchTab('tab-recipe')">
                     <i class="ph ph-cooking-pot" style="font-size:1.05rem;"></i> Recipe
                 </button>
+                <button class="tab-btn" id="btn-tab-convert" onclick="switchTab('tab-convert')">
+                    <i class="ph ph-arrows-left-right" style="font-size:1.05rem;"></i> Convert
+                </button>
                 <button class="tab-btn" id="btn-tab-users" onclick="switchTab('tab-users')" style="display:none;">
                     <i class="ph ph-users-three" style="font-size:1.05rem;"></i> User Management
                 </button>
@@ -5370,10 +5460,23 @@
                             <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-dim); pointer-events:none;"></i>
                             <input type="text" id="filter-recipe-name" placeholder="Cari Item atau Product..." class="inp" style="padding-left:36px;" oninput="_debouncedFilterRecipe()">
                         </div>
+                        <!-- Dua cara baca data yang sama: per Item (item ini dipakai
+                             product apa saja) dan per Product (product ini pakai item apa saja). -->
+                        <div class="status-seg" role="group" aria-label="Cara pengelompokan Recipe">
+                            <button type="button" class="seg-btn active" id="rcp-view-ITEM" onclick="setRecipeView('ITEM')">
+                                <i class="ph ph-package"></i> Per Item
+                            </button>
+                            <button type="button" class="seg-btn" id="rcp-view-PRODUCT" onclick="setRecipeView('PRODUCT')">
+                                <i class="ph ph-storefront"></i> Per Product
+                            </button>
+                        </div>
                         <div class="rcp-summary">
                             <span class="rcp-chip"><i class="ph ph-cooking-pot"></i><b id="rcp-count">0</b> recipe</span>
                             <span class="rcp-chip"><i class="ph ph-package"></i><b id="rcp-item-count">0</b> item</span>
                             <span class="rcp-chip"><i class="ph ph-storefront"></i><b id="rcp-product-count">0</b> product</span>
+                            <button type="button" class="rcp-chip rcp-chip-btn" id="rcp-toggle-all" onclick="toggleAllRecipeGroups()">
+                                <i class="ph ph-arrows-out-line-vertical"></i> Buka semua
+                            </button>
                         </div>
                         <p class="rcp-hint">
                             <i class="ph ph-info"></i>
@@ -5385,15 +5488,70 @@
                     <table class="data-table as-cards">
                         <thead>
                             <tr>
-                                <th onclick="sortRecipeTable('namaItem')" style="cursor:pointer; user-select:none;">Item <i class="ph ph-caret-up-down"></i></th>
-                                <th onclick="sortRecipeTable('product')" style="cursor:pointer; user-select:none;">Product <i class="ph ph-caret-up-down"></i></th>
+                                <th id="rcp-col-child" onclick="sortRecipeTable('child')" style="cursor:pointer; user-select:none;">Product <i class="ph ph-caret-up-down"></i></th>
                                 <th onclick="sortRecipeTable('qtyRcv')" style="text-align:right; cursor:pointer; user-select:none;">QTY RCV <i class="ph ph-caret-up-down"></i></th>
                                 <th onclick="sortRecipeTable('uom')" style="cursor:pointer; user-select:none;">UOM <i class="ph ph-caret-up-down"></i></th>
                                 <th style="text-align:center;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="recipe-tbody">
-                            <tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-dim); font-size:0.85rem;">Belum ada data Recipe</td></tr>
+                            <tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-dim); font-size:0.85rem;">Belum ada data Recipe</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== TAB: CONVERT (Sheet CONVERT) ===================== -->
+        <!-- Sumber data SAMA dengan yang dipakai Smart EXP Recommendation dan
+             Laporan Stock Opname, jadi perubahan di sini langsung terpakai. -->
+        <div id="tab-convert" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                            <div>
+                                <h2 style="font-size:0.95rem; font-weight:800; color:var(--text); margin:0; display:flex; align-items:center; gap:8px;">
+                                    <i class="ph ph-arrows-left-right" style="color:var(--accent); font-size:1.15rem;"></i> Convert
+                                </h2>
+                                <p style="font-size:0.75rem; font-weight:500; color:var(--text-dim); margin:2px 0 0;">Konversi satuan gudang &rarr; satuan dasar dari Sheet CONVERT</p>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button onclick="loadConvertData()" class="btn-ghost" style="font-size:0.78rem;">
+                                    <i class="ph ph-arrows-clockwise"></i> Refresh
+                                </button>
+                                <button id="btn-add-convert" onclick="openAddConvertModal()" class="btn-primary" style="padding:9px 18px; font-size:0.82rem;">
+                                    <i class="ph ph-plus"></i> Tambah Convert
+                                </button>
+                            </div>
+                        </div>
+                        <div style="position:relative;">
+                            <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-dim); pointer-events:none;"></i>
+                            <input type="text" id="filter-convert-name" placeholder="Cari Item atau satuan..." class="inp" style="padding-left:36px;" oninput="_debouncedFilterConvert()">
+                        </div>
+                        <div class="rcp-summary">
+                            <span class="rcp-chip"><i class="ph ph-arrows-left-right"></i><b id="cvt-count">0</b> konversi</span>
+                            <span class="rcp-chip"><i class="ph ph-package"></i><b id="cvt-item-count">0</b> item</span>
+                        </div>
+                        <p class="rcp-hint">
+                            <i class="ph ph-info"></i>
+                            <span>Satu item boleh punya <b>beberapa UOM</b> dengan faktor berbeda. Dipakai <b>Smart EXP</b> dan <b>Laporan Stock Opname</b>.</span>
+                        </p>
+                    </div>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="data-table as-cards">
+                        <thead>
+                            <tr>
+                                <th onclick="sortConvertTable('namaItem')" style="cursor:pointer; user-select:none;">Item <i class="ph ph-caret-up-down"></i></th>
+                                <th onclick="sortConvertTable('uom')" style="cursor:pointer; user-select:none;">UOM <i class="ph ph-caret-up-down"></i></th>
+                                <th onclick="sortConvertTable('convert')" style="text-align:right; cursor:pointer; user-select:none;">CONVERT <i class="ph ph-caret-up-down"></i></th>
+                                <th onclick="sortConvertTable('uomConvert')" style="cursor:pointer; user-select:none;">Uom_convert <i class="ph ph-caret-up-down"></i></th>
+                                <th style="text-align:center;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="convert-tbody">
+                            <tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-dim); font-size:0.85rem;">Belum ada data Convert</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -5953,6 +6111,10 @@
                 <i class="ph ph-cooking-pot"></i>
                 <span>Recipe<span class="more-sub">Pemetaan Item &rarr; Product dari sheet RCV</span></span>
             </button>
+            <button class="more-item" data-tab="tab-convert" onclick="_moreGo('tab-convert')">
+                <i class="ph ph-arrows-left-right"></i>
+                <span>Convert<span class="more-sub">Konversi satuan gudang dari sheet CONVERT</span></span>
+            </button>
             <button class="more-item" data-tab="tab-users" onclick="_moreGo('tab-users')" style="display:none;">
                 <i class="ph ph-users-three"></i>
                 <span>User Management<span class="more-sub">Kelola akses pengguna sistem</span></span>
@@ -6353,6 +6515,7 @@
         const _TAB_LABEL = {
             'tab-master': 'Master Item',
             'tab-recipe': 'Recipe',
+            'tab-convert': 'Convert',
             'tab-opname': 'Stock Opname',
             'tab-users':  'User Management'
         };
@@ -6417,6 +6580,11 @@
                 if (!masterItems.length) fetchMasterData();
                 if (globalRecipeData.length === 0) loadRecipeData();
                 else renderRecipeTable();
+            }
+            if (tabId === 'tab-convert') {
+                if (!masterItems.length) fetchMasterData();
+                if (globalConvertData.length === 0) loadConvertData();
+                else renderConvertTable();
             }
             if (tabId === 'tab-users') {
                 // [UPGRADE] User Management — muat daftar user saat tab dibuka
@@ -8419,7 +8587,10 @@ let currentGroup = '', groupId = 0;
         // hanya mengelola isinya; rumus rekomendasi tidak disentuh.
         // =====================================================================
         let globalRecipeData = [];
-        let recipeSort       = { key: 'namaItem', dir: 'asc' };
+        let recipeSort       = { key: '', dir: 'asc' };
+        let recipeView       = 'ITEM';      // 'ITEM' | 'PRODUCT'
+        let _rcpOpen         = new Set();   // id grup yang sedang terbuka
+        let _rcpGroupIds     = [];
         let recipeSelect     = null;
         let _recipeFilterTmr = null;
 
@@ -8456,15 +8627,95 @@ let currentGroup = '', groupId = 0;
             renderRecipeTable();
         }
 
+        /**
+         * Kunci identitas Item — MENGIKUTI itemKeyVariants_() di backend: nama
+         * dibandingkan tanpa prefix [KODE], sehingga "Gula Pasir" dan
+         * "[GR001]Gula Pasir" dianggap item yang SAMA (tidak pecah dua grup).
+         */
+        function _rcpItemKey(nama) {
+            const bersih = stripCode(nama || '') || (nama || '');
+            return bersih.trim().toUpperCase().replace(/\s+/g, ' ');
+        }
+
+        /**
+         * Kunci identitas Product — kode product yang menentukan, karena dua
+         * product berbeda boleh punya nama tampilan mirip. Tanpa kode, jatuh ke
+         * namanya.
+         */
+        function _rcpProductKey(product) {
+            const kode = _extractRecipeCode(product);
+            if (kode) return 'K:' + kode.toUpperCase();
+            return 'N:' + _stripRecipeCode(product).trim().toUpperCase().replace(/\s+/g, ' ');
+        }
+
         /** Product dengan QTY RCV terbesar per Item — sama dengan aturan Smart EXP. */
         function _recipeBestRows() {
             const best = new Map();
             globalRecipeData.forEach(r => {
-                const k = (r.namaItem || '').trim().toUpperCase().replace(/\s+/g, ' ');
+                const k = _rcpItemKey(r.namaItem);
                 const cur = best.get(k);
                 if (!cur || (r.qtyRcv || 0) > (cur.qtyRcv || 0)) best.set(k, r);
             });
             return new Set(Array.from(best.values()).map(r => r.row));
+        }
+
+        /** Ganti cara pengelompokan: per Item atau per Product. */
+        function setRecipeView(v) {
+            recipeView = (v === 'PRODUCT') ? 'PRODUCT' : 'ITEM';
+            ['ITEM', 'PRODUCT'].forEach(k => {
+                const b = document.getElementById('rcp-view-' + k);
+                if (b) b.classList.toggle('active', k === recipeView);
+            });
+            // Kolom anak berganti arti: per Item isinya Product, sebaliknya Item.
+            const th = document.getElementById('rcp-col-child');
+            if (th) th.innerHTML = (recipeView === 'ITEM' ? 'Product' : 'Item') +
+                                   ' <i class="ph ph-caret-up-down"></i>';
+            _rcpOpen = new Set();          // grup baru → mulai dari keadaan tertutup
+            renderRecipeTable();
+        }
+
+        /** Buka / tutup satu grup. */
+        function toggleRecipeGroup(gid) {
+            if (_rcpOpen.has(gid)) _rcpOpen.delete(gid); else _rcpOpen.add(gid);
+            _rcpApplyOpen();
+        }
+
+        /** Buka semua grup, atau tutup semuanya bila semua sudah terbuka. */
+        function toggleAllRecipeGroups() {
+            // Keputusan diambil dari grup yang SEDANG ada, bukan dari isi
+            // _rcpOpen — id lama sisa tampilan sebelumnya tidak ikut menghitung.
+            const adaTertutup = _rcpGroupIds.some(gid => !_rcpOpen.has(gid));
+            _rcpOpen = adaTertutup ? new Set(_rcpGroupIds) : new Set();
+            _rcpApplyOpen();
+        }
+
+        /**
+         * Id grup yang STABIL terhadap isi datanya, bukan nomor urut. Dengan
+         * begitu grup yang sedang dibuka tetap grup yang sama setelah data
+         * ditambah/dihapus atau urutannya berubah.
+         */
+        function _rcpGid(key) {
+            let h = 0;
+            for (let i = 0; i < key.length; i++) h = ((h << 5) - h + key.charCodeAt(i)) | 0;
+            return 'g' + (h >>> 0).toString(36);
+        }
+
+        /** Terapkan keadaan buka/tutup ke DOM tanpa merender ulang tabel. */
+        function _rcpApplyOpen() {
+            _rcpGroupIds.forEach(gid => {
+                const buka = _rcpOpen.has(gid);
+                document.querySelectorAll('#recipe-tbody tr.rcp-grp-' + gid)
+                        .forEach(tr => tr.classList.toggle('hidden', !buka));
+                const ico = document.getElementById('rcp-ico-' + gid);
+                if (ico) ico.style.transform = buka ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+            const btn = document.getElementById('rcp-toggle-all');
+            if (btn) {
+                const semuaTerbuka = _rcpGroupIds.length > 0 && _rcpOpen.size >= _rcpGroupIds.length;
+                btn.innerHTML = semuaTerbuka
+                    ? '<i class="ph ph-arrows-in-line-vertical"></i> Tutup semua'
+                    : '<i class="ph ph-arrows-out-line-vertical"></i> Buka semua';
+            }
         }
 
         function renderRecipeTable() {
@@ -8473,62 +8724,120 @@ let currentGroup = '', groupId = 0;
 
             const kw = (document.getElementById('filter-recipe-name') || {}).value || '';
             const q  = kw.trim().toLowerCase();
-            let rows = globalRecipeData.filter(r =>
+            const rows = globalRecipeData.filter(r =>
                 !q ||
                 (r.namaItem || '').toLowerCase().includes(q) ||
                 (r.product  || '').toLowerCase().includes(q) ||
                 (r.uom      || '').toLowerCase().includes(q));
 
-            const key = recipeSort.key, mul = recipeSort.dir === 'asc' ? 1 : -1;
-            rows = rows.slice().sort((a, b) => {
-                let va = a[key], vb = b[key];
-                if (key === 'qtyRcv') return ((va || 0) - (vb || 0)) * mul;
-                va = (va || '').toString().toLowerCase();
-                vb = (vb || '').toString().toLowerCase();
-                return va.localeCompare(vb, 'id') * mul;
-            });
-
             // Ringkasan dihitung dari SELURUH data, bukan hasil filter.
             const items = new Set(globalRecipeData.map(r => (r.namaItem || '').trim().toUpperCase()));
             const prods = new Set(globalRecipeData.map(r => (r.product  || '').trim().toUpperCase()));
-            const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-            setTxt('rcp-count', globalRecipeData.length);
-            setTxt('rcp-item-count', items.size);
-            setTxt('rcp-product-count', prods.size);
+            _setTxt('rcp-count', globalRecipeData.length);
+            _setTxt('rcp-item-count', items.size);
+            _setTxt('rcp-product-count', prods.size);
 
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-dim); font-size:0.85rem;">' +
+                _rcpGroupIds = [];
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-dim); font-size:0.85rem;">' +
                     (globalRecipeData.length ? 'Tidak ada Recipe yang cocok dengan pencarian' : 'Belum ada data Recipe') + '</td></tr>';
+                _rcpApplyOpen();
                 return;
             }
 
+            const perItem  = recipeView === 'ITEM';
             const bestRows = _recipeBestRows();
-            const frag = document.createDocumentFragment();
+
+            // ---- Kelompokkan ----
+            const groups = new Map();      // kunci identitas → { gid, label, kode, rows[] }
             rows.forEach(r => {
-                const tr = document.createElement('tr');
-                const kode = _sxEsc(_extractRecipeCode(r.product));
-                const nama = _sxEsc(_stripRecipeCode(r.product));
-                const isBest = bestRows.has(r.row);
-                tr.innerHTML =
-                    '<td style="font-weight:700; color:var(--text);">' + _sxEsc(stripCode(r.namaItem)) + '</td>' +
-                    '<td><span class="rcp-prod">' + (kode ? '<span class="rcp-code">' + kode + '</span>' : '') + nama + '</span>' +
-                        (isBest ? '<span class="rcp-best" title="Product dengan QTY RCV terbesar — inilah yang dipakai Smart EXP"><i class="ph ph-star"></i>Utama</span>' : '') + '</td>' +
-                    '<td style="text-align:right; font-weight:700; font-variant-numeric:tabular-nums; color:var(--accent);">' + formatID(r.qtyRcv) + '</td>' +
-                    '<td style="color:var(--text-muted); font-size:0.82rem;">' + _sxEsc(r.uom || '—') + '</td>' +
-                    '<td style="text-align:center;">' +
-                        '<div class="row-acts">' +
-                            '<button onclick="openEditRecipeModal(' + r.row + ')" title="Ubah Recipe" aria-label="Ubah Recipe"' +
-                                ' style="background:var(--accent-soft); border:1px solid var(--accent-brd); color:var(--accent); border-radius:8px; padding:6px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; font-family:var(--font-body);">' +
-                                '<i class="ph ph-pencil-simple" style="font-size:1rem;"></i></button>' +
-                            '<button onclick="deleteRecipeRow(' + r.row + ')" title="Hapus Recipe" aria-label="Hapus Recipe"' +
-                                ' style="background:var(--red-soft); border:1px solid rgba(220,38,38,0.25); color:var(--red); border-radius:8px; padding:6px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; font-family:var(--font-body);">' +
-                                '<i class="ph ph-trash" style="font-size:1rem;"></i></button>' +
-                        '</div>' +
-                    '</td>';
-                frag.appendChild(tr);
+                const key = perItem ? _rcpItemKey(r.namaItem) : _rcpProductKey(r.product);
+                if (!groups.has(key)) {
+                    groups.set(key, {
+                        gid:   _rcpGid((perItem ? 'I|' : 'P|') + key),
+                        label: perItem ? stripCode(r.namaItem) : _stripRecipeCode(r.product),
+                        kode:  perItem ? (_scanKodeItem(r.namaItem) || '') : _extractRecipeCode(r.product),
+                        rows:  []
+                    });
+                }
+                const g = groups.get(key);
+                // Baris yang membawa kode dipakai untuk judul grup, supaya chip
+                // kode tetap tampil walau baris pertama ditulis tanpa prefix.
+                if (!g.kode) {
+                    const kode = perItem ? (_scanKodeItem(r.namaItem) || '') : _extractRecipeCode(r.product);
+                    if (kode) g.kode = kode;
+                }
+                g.rows.push(r);
             });
-            tbody.innerHTML = '';
-            tbody.appendChild(frag);
+
+            const urutGrup = Array.from(groups.values())
+                .sort((a, b) => (a.label || '').localeCompare(b.label || '', 'id'));
+
+            // ---- Urutan baris di dalam grup ----
+            const key = recipeSort.key, mul = recipeSort.dir === 'asc' ? 1 : -1;
+            const childText = r => perItem ? _stripRecipeCode(r.product) : stripCode(r.namaItem);
+            const urutAnak = arr => arr.slice().sort((a, b) => {
+                if (key === 'qtyRcv') return ((a.qtyRcv || 0) - (b.qtyRcv || 0)) * mul;
+                if (key === 'uom')    return (a.uom || '').localeCompare(b.uom || '', 'id') * mul;
+                if (key === 'child')  return childText(a).localeCompare(childText(b), 'id') * mul;
+                // Bawaan: QTY RCV terbesar dulu — yang dipakai Smart EXP tampil paling atas.
+                return (b.qtyRcv || 0) - (a.qtyRcv || 0);
+            });
+
+            // Saat mencari, grup yang cocok langsung dibuka agar hasilnya terlihat.
+            const bukaOtomatis = !!q;
+            const ids = [];
+            let html = '';
+
+            urutGrup.forEach(g => {
+                const gid = g.gid;
+                ids.push(gid);
+                const buka = bukaOtomatis || _rcpOpen.has(gid);
+
+                html +=
+                    '<tr class="group-hdr"><td colspan="4">' +
+                        '<div class="group-hdr-inner" onclick="toggleRecipeGroup(\'' + gid + '\')">' +
+                            '<span style="display:flex; align-items:center; gap:8px; min-width:0;">' +
+                                '<i class="ph ' + (perItem ? 'ph-package' : 'ph-storefront') + '" style="color:var(--accent); font-size:1.1rem; flex-shrink:0;"></i>' +
+                                (g.kode ? '<span class="rcp-code">' + _sxEsc(g.kode) + '</span>' : '') +
+                                '<span class="rcp-grp-nm">' + _sxEsc(g.label) + '</span>' +
+                                '<span class="rcp-grp-count">' + g.rows.length + ' ' + (perItem ? 'product' : 'item') + '</span>' +
+                            '</span>' +
+                            '<i id="rcp-ico-' + gid + '" class="ph ph-caret-down" style="color:var(--text-dim); font-size:1.1rem; transition:transform 0.25s;' +
+                                (buka ? ' transform:rotate(180deg);' : '') + '"></i>' +
+                        '</div>' +
+                    '</td></tr>';
+
+                urutAnak(g.rows).forEach(r => {
+                    const isBest = bestRows.has(r.row);
+                    const kode   = perItem ? _extractRecipeCode(r.product) : (_scanKodeItem(r.namaItem) || '');
+                    const nama   = childText(r);
+                    html +=
+                        '<tr class="rcp-grp-' + gid + (buka ? '' : ' hidden') + '">' +
+                            '<td><span class="rcp-prod">' + (kode ? '<span class="rcp-code">' + _sxEsc(kode) + '</span>' : '') + _sxEsc(nama) + '</span>' +
+                                (isBest ? '<span class="rcp-best" title="Product dengan QTY RCV terbesar untuk item ini — inilah yang dipakai Smart EXP"><i class="ph ph-star"></i>Utama</span>' : '') + '</td>' +
+                            '<td style="text-align:right; font-weight:700; font-variant-numeric:tabular-nums; color:var(--accent);">' + formatID(r.qtyRcv) + '</td>' +
+                            '<td style="color:var(--text-muted); font-size:0.82rem;">' + _sxEsc(r.uom || '—') + '</td>' +
+                            '<td style="text-align:center;">' +
+                                '<div class="row-acts">' +
+                                    '<button onclick="openEditRecipeModal(' + r.row + ')" title="Ubah Recipe" aria-label="Ubah Recipe"' +
+                                        ' style="background:var(--accent-soft); border:1px solid var(--accent-brd); color:var(--accent); border-radius:8px; padding:6px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; font-family:var(--font-body);">' +
+                                        '<i class="ph ph-pencil-simple" style="font-size:1rem;"></i></button>' +
+                                    '<button onclick="deleteRecipeRow(' + r.row + ')" title="Hapus Recipe" aria-label="Hapus Recipe"' +
+                                        ' style="background:var(--red-soft); border:1px solid rgba(220,38,38,0.25); color:var(--red); border-radius:8px; padding:6px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; font-family:var(--font-body);">' +
+                                        '<i class="ph ph-trash" style="font-size:1rem;"></i></button>' +
+                                '</div>' +
+                            '</td>' +
+                        '</tr>';
+                });
+            });
+
+            tbody.innerHTML = html;
+            _rcpGroupIds = ids;
+            // Buang id grup yang sudah tidak ada agar keadaan buka/tutup tidak
+            // menumpuk dan tombol "Buka semua" tetap membaca keadaan sebenarnya.
+            _rcpOpen = bukaOtomatis ? new Set(ids) : new Set(ids.filter(id => _rcpOpen.has(id)));
+            _rcpApplyOpen();
         }
 
         /** "[F107C10048] Popcorn M" → "F107C10048" (kosong bila tidak ada kode). */
@@ -8702,6 +9011,291 @@ let currentGroup = '', groupId = 0;
                     })
                     .withFailureHandler(() => { showLoader(false); showAlert('Error', 'Koneksi Server Gagal', 'error'); })
                     .deleteRecipe(_withAuth({ row: r.row, origItem: r.namaItem, origProduct: r.product }));
+            });
+        }
+
+        // =====================================================================
+        // CONVERT (Sheet CONVERT) — Item + UOM → faktor + Uom_convert
+        // Sumber data yang SAMA dengan Smart EXP dan Laporan Stock Opname.
+        // =====================================================================
+        let globalConvertData = [];
+        let convertSort       = { key: 'namaItem', dir: 'asc' };
+        let convertSelect     = null;
+        let _convertFilterTmr = null;
+
+        function _debouncedFilterConvert() {
+            clearTimeout(_convertFilterTmr);
+            _convertFilterTmr = setTimeout(renderConvertTable, 180);
+        }
+
+        function loadConvertData() {
+            if (!_canAccess('tab-convert')) return _denyAccess('Convert');
+            showTableSkeleton('convert-tbody', 5, 6);
+            google.script.run
+                .withSuccessHandler(res => {
+                    showLoader(false);
+                    if (res && res.success) {
+                        globalConvertData = res.data || [];
+                        renderConvertTable();
+                    } else if (!_handleAuthError(res)) {
+                        globalConvertData = [];
+                        renderConvertTable();
+                        showAlert('Gagal', (res && res.message) ? res.message : 'Gagal memuat Convert.', 'error');
+                    }
+                })
+                .withFailureHandler(err => {
+                    showLoader(false);
+                    showAlert('Error', 'Sistem Gagal: ' + (err ? err.message : ''), 'error');
+                })
+                .getConvertData(_withAuth({}));
+        }
+
+        function sortConvertTable(key) {
+            convertSort.dir = (convertSort.key === key && convertSort.dir === 'asc') ? 'desc' : 'asc';
+            convertSort.key = key;
+            renderConvertTable();
+        }
+
+        function renderConvertTable() {
+            const tbody = document.getElementById('convert-tbody');
+            if (!tbody) return;
+
+            const q = ((document.getElementById('filter-convert-name') || {}).value || '').trim().toLowerCase();
+            let rows = globalConvertData.filter(r =>
+                !q ||
+                (r.namaItem   || '').toLowerCase().includes(q) ||
+                (r.uom        || '').toLowerCase().includes(q) ||
+                (r.uomConvert || '').toLowerCase().includes(q));
+
+            const key = convertSort.key, mul = convertSort.dir === 'asc' ? 1 : -1;
+            // Nama item diurutkan memakai teks yang BENAR-BENAR tampil (tanpa
+            // prefix [KODE]) supaya urutannya sesuai yang dilihat user.
+            const teks = (r, k) => (k === 'namaItem' ? stripCode(r.namaItem || '') : (r[k] || '')).toString().toLowerCase();
+            rows = rows.slice().sort((a, b) => {
+                if (key === 'convert') return ((a.convert || 0) - (b.convert || 0)) * mul;
+                return teks(a, key).localeCompare(teks(b, key), 'id') * mul;
+            });
+
+            const items = new Set(globalConvertData.map(r => (r.namaItem || '').trim().toUpperCase()));
+            _setTxt('cvt-count', globalConvertData.length);
+            _setTxt('cvt-item-count', items.size);
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-dim); font-size:0.85rem;">' +
+                    (globalConvertData.length ? 'Tidak ada konversi yang cocok dengan pencarian' : 'Belum ada data Convert') + '</td></tr>';
+                return;
+            }
+
+            const frag = document.createDocumentFragment();
+            rows.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td style="font-weight:700; color:var(--text);">' + _sxEsc(stripCode(r.namaItem)) + '</td>' +
+                    '<td><span class="cvt-uom">' + _sxEsc(r.uom || '—') + '</span></td>' +
+                    '<td style="text-align:right; font-weight:700; font-variant-numeric:tabular-nums; color:var(--accent);">' + formatID(r.convert) + '</td>' +
+                    '<td>' + (r.uomConvert ? '<span class="cvt-uom">' + _sxEsc(r.uomConvert) + '</span>'
+                                           : '<span style="color:var(--text-dim);">—</span>') + '</td>' +
+                    '<td style="text-align:center;">' +
+                        '<div class="row-acts">' +
+                            '<button onclick="openEditConvertModal(' + r.row + ')" title="Ubah konversi" aria-label="Ubah konversi"' +
+                                ' style="background:var(--accent-soft); border:1px solid var(--accent-brd); color:var(--accent); border-radius:8px; padding:6px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; font-family:var(--font-body);">' +
+                                '<i class="ph ph-pencil-simple" style="font-size:1rem;"></i></button>' +
+                            '<button onclick="deleteConvertRow(' + r.row + ')" title="Hapus konversi" aria-label="Hapus konversi"' +
+                                ' style="background:var(--red-soft); border:1px solid rgba(220,38,38,0.25); color:var(--red); border-radius:8px; padding:6px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; font-family:var(--font-body);">' +
+                                '<i class="ph ph-trash" style="font-size:1rem;"></i></button>' +
+                        '</div>' +
+                    '</td>';
+                frag.appendChild(tr);
+            });
+            tbody.innerHTML = '';
+            tbody.appendChild(frag);
+        }
+
+        /** Dropdown Item pada modal Convert — sumbernya Master Item yang sama. */
+        function _ensureConvertDropdown() {
+            const el = document.getElementById('convert-item');
+            if (!el || !window.TomSelect) return;
+            const src = (masterItems && masterItems.length) ? masterItems : globalMasterData;
+            const options = (src || []).map(it => ({
+                value: it.namaItem,
+                text:  stripCode(it.namaItem),
+                sub:   [it.uom, it.altUom].filter(Boolean).join(' · ')
+            }));
+            if (convertSelect) {
+                if (convertSelect.options && Object.keys(convertSelect.options).length !== options.length) {
+                    const keep = convertSelect.getValue();
+                    convertSelect.clearOptions();
+                    convertSelect.addOption(options);
+                    convertSelect.refreshOptions(false);
+                    if (keep) convertSelect.setValue(keep, true);
+                }
+                return;
+            }
+            convertSelect = new TomSelect(el, {
+                options: options, maxItems: 1, searchField: ['text', 'sub'],
+                placeholder: 'Ketik / pilih nama item...',
+                // create:true agar baris CONVERT lama yang itemnya sudah tidak ada
+                // di Master tetap bisa dibuka & disimpan tanpa kehilangan nilainya.
+                create: true,
+                render: {
+                    option: (d, esc) =>
+                        '<div style="padding:9px 12px;"><div style="font-weight:700;">' + esc(d.text) + '</div>' +
+                        (d.sub ? '<div style="font-size:0.7rem; color:var(--text-dim);">' + esc(d.sub) + '</div>' : '') + '</div>',
+                    item: (d, esc) => '<div>' + esc(d.text) + '</div>'
+                },
+                // UOM gudang item biasanya sama dengan UOM konversi → isikan
+                // sebagai saran saat menambah baris baru, tetap bisa diubah.
+                onChange(v) {
+                    const uom = document.getElementById('convert-uom');
+                    const row = document.getElementById('convert-row');
+                    if (!uom || !row || row.value || uom.value) return;
+                    const it = (src || []).find(x => x.namaItem === v);
+                    if (it && it.uom) { uom.value = it.uom; _cvtPreview(); }
+                }
+            });
+        }
+
+        /** Pratinjau kalimat konversi di dalam modal. */
+        function _cvtPreview() {
+            const el = document.getElementById('convert-preview');
+            if (!el) return;
+            const uom  = (document.getElementById('convert-uom').value || '').trim() || 'UOM';
+            const hsl  = (document.getElementById('convert-uomhasil').value || '').trim() || 'Uom_convert';
+            const nRaw = (document.getElementById('convert-value').value || '').trim();
+            const n    = nRaw === '' ? 0 : (parseFloat(nRaw) || 0);
+            el.innerHTML = '1 <b>' + _sxEsc(uom) + '</b> = <b>' + formatID(n) + '</b> <b>' + _sxEsc(hsl) + '</b>';
+        }
+
+        function _openConvertModal() {
+            const m = document.getElementById('convert-modal');
+            if (!m) return;
+            m.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            _ensureConvertDropdown();
+            _cvtPreview();
+        }
+
+        function closeConvertModal() {
+            const m = document.getElementById('convert-modal');
+            if (m) m.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function openAddConvertModal() {
+            if (!_canAccess('tab-convert')) return _denyAccess('Convert');
+            _setTxt('convert-modal-title', 'Tambah Convert');
+            document.getElementById('convert-row').value       = '';
+            document.getElementById('convert-orig-item').value = '';
+            document.getElementById('convert-orig-uom').value  = '';
+            document.getElementById('convert-uom').value       = '';
+            document.getElementById('convert-uomhasil').value  = '';
+            document.getElementById('convert-value').value     = '';
+            _openConvertModal();
+            if (convertSelect) convertSelect.clear(true);
+        }
+
+        function openEditConvertModal(row) {
+            if (!_canAccess('tab-convert')) return _denyAccess('Convert');
+            const r = globalConvertData.find(x => x.row === row);
+            if (!r) return showAlert('Tidak Ditemukan', 'Data Convert sudah berubah. Muat ulang halaman lalu coba lagi.', 'warning');
+
+            _setTxt('convert-modal-title', 'Ubah Convert');
+            document.getElementById('convert-row').value       = r.row;
+            document.getElementById('convert-orig-item').value = r.namaItem   || '';
+            document.getElementById('convert-orig-uom').value  = r.uom        || '';
+            document.getElementById('convert-uom').value       = r.uom        || '';
+            document.getElementById('convert-uomhasil').value  = r.uomConvert || '';
+            document.getElementById('convert-value').value     = r.convert;
+            _openConvertModal();
+            if (convertSelect) {
+                if (!convertSelect.options[r.namaItem]) {
+                    convertSelect.addOption({ value: r.namaItem, text: stripCode(r.namaItem), sub: '' });
+                }
+                convertSelect.setValue(r.namaItem, true);
+            }
+            _cvtPreview();
+        }
+
+        function saveConvert() {
+            if (!_canAccess('tab-convert')) return _denyAccess('Convert');
+            const row        = (document.getElementById('convert-row').value || '').trim();
+            const namaItem   = convertSelect ? (convertSelect.getValue() || '') : '';
+            const uom        = (document.getElementById('convert-uom').value || '').trim();
+            const uomConvert = (document.getElementById('convert-uomhasil').value || '').trim();
+            const raw        = (document.getElementById('convert-value').value || '').trim();
+
+            if (!namaItem) return showAlert('Perhatian', 'Item wajib dipilih.', 'warning');
+            if (!uom)      return showAlert('Perhatian', 'UOM wajib diisi.', 'warning');
+            if (raw === '' || !(parseFloat(raw) > 0)) {
+                return showAlert('Perhatian', 'CONVERT harus berupa angka lebih besar dari 0.', 'warning');
+            }
+
+            const payload = { namaItem: namaItem, uom: uom, convert: parseFloat(raw), uomConvert: uomConvert };
+            const btn = document.getElementById('btn-save-convert');
+            if (btn) btn.disabled = true;
+            showLoader(true);
+
+            const done = res => {
+                showLoader(false);
+                if (btn) btn.disabled = false;
+                if (res && res.success) {
+                    closeConvertModal();
+                    showAlert('Berhasil', res.message || 'Konversi tersimpan.', 'success');
+                    loadConvertData();
+                    // Smart EXP & Laporan Opname memakai angka ini — segarkan bila sudah dibuka.
+                    if (typeof loadSmartExp === 'function' && smartExpData && smartExpData.length) loadSmartExp(true);
+                    if (typeof globalOpnameReport !== 'undefined' && globalOpnameReport.length &&
+                        typeof loadOpnameReport === 'function') loadOpnameReport();
+                } else if (!_handleAuthError(res)) {
+                    showAlert('Gagal', (res && res.message) ? res.message : 'Gagal menyimpan konversi.', 'error');
+                }
+            };
+            const fail = err => {
+                showLoader(false);
+                if (btn) btn.disabled = false;
+                showAlert('Error', 'Koneksi Server Gagal: ' + (err ? err.message : ''), 'error');
+            };
+
+            if (row) {
+                payload.row      = parseInt(row, 10);
+                payload.origItem = document.getElementById('convert-orig-item').value;
+                payload.origUom  = document.getElementById('convert-orig-uom').value;
+                google.script.run.withSuccessHandler(done).withFailureHandler(fail).updateConvert(_withAuth(payload));
+            } else {
+                google.script.run.withSuccessHandler(done).withFailureHandler(fail).addConvert(_withAuth(payload));
+            }
+        }
+
+        function deleteConvertRow(row) {
+            if (!_canAccess('tab-convert')) return _denyAccess('Convert');
+            const r = globalConvertData.find(x => x.row === row);
+            if (!r) return showAlert('Tidak Ditemukan', 'Data Convert sudah berubah. Muat ulang halaman lalu coba lagi.', 'warning');
+
+            Swal.fire({
+                title: 'Hapus Konversi?',
+                html: 'Yakin ingin menghapus konversi:<br><strong>' + _sxEsc(stripCode(r.namaItem)) +
+                      '</strong> (' + _sxEsc(r.uom) + ') &rarr; <strong>' + _sxEsc(r.uomConvert || '—') + '</strong>?' +
+                      '<br><small style="color:var(--red);">Smart EXP &amp; Laporan Opname untuk item ini akan kehilangan konversinya.</small>',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: 'var(--red)', cancelButtonColor: 'var(--border-light)',
+                confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal',
+                background: 'var(--surface)', color: 'var(--text)'
+            }).then(result => {
+                if (!result.isConfirmed) return;
+                showLoader(true);
+                google.script.run
+                    .withSuccessHandler(res => {
+                        showLoader(false);
+                        if (res && res.success) {
+                            showAlert('Terhapus', res.message || 'Konversi dihapus.', 'success');
+                            loadConvertData();
+                            if (typeof loadSmartExp === 'function' && smartExpData && smartExpData.length) loadSmartExp(true);
+                        } else if (!_handleAuthError(res)) {
+                            showAlert('Gagal', (res && res.message) ? res.message : 'Gagal menghapus konversi.', 'error');
+                        }
+                    })
+                    .withFailureHandler(() => { showLoader(false); showAlert('Error', 'Koneksi Server Gagal', 'error'); })
+                    .deleteConvert(_withAuth({ row: r.row, origItem: r.namaItem, origUom: r.uom }));
             });
         }
 
@@ -13435,7 +14029,7 @@ let currentGroup = '', groupId = 0;
                         '<i class="ph ph-arrow-right"></i>' +
                         '<div class="sx-flow-node"><span class="n">×' + _sxNum(r.convertValue, 0) + '</span><span class="l">convert</span></div>' +
                         '<i class="ph ph-arrow-right"></i>' +
-                        '<div class="sx-flow-node"><span class="n">' + _sxNum(r.convertedQty, 0) + '</span><span class="l">' + _sxEsc(r.rcvUom || 'unit') + '</span></div>' +
+                        '<div class="sx-flow-node"><span class="n">' + _sxNum(r.convertedQty, 0) + '</span><span class="l">' + _sxEsc(r.convertedUom || r.rcvUom || 'unit') + '</span></div>' +
                     '</div>' +
                 '</div>' +
 
@@ -13597,6 +14191,7 @@ let currentGroup = '', groupId = 0;
             'tab-opname':         { t: 'Stock Opname',   s: 'Hitung fisik & adjustment',   ico: 'ph ph-barcode',        act: "startBarcodeScan({ mode: 'OPNAME' })",    lbl: 'Scan barcode opname' },
             'tab-master':         { t: 'Master Item',    s: 'Data induk barang',           ico: 'ph ph-plus',             act: 'openAddMasterModal()',                lbl: 'Tambah item' },
             'tab-recipe':         { t: 'Recipe',         s: 'Item → Product (sheet RCV)',  ico: 'ph ph-plus',             act: 'openAddRecipeModal()',                lbl: 'Tambah recipe' },
+            'tab-convert':        { t: 'Convert',        s: 'Konversi satuan (sheet CONVERT)', ico: 'ph ph-plus',          act: 'openAddConvertModal()',               lbl: 'Tambah convert' },
             'tab-users':          { t: 'User',           s: 'Kelola pengguna & akses',     ico: 'ph ph-plus',             act: 'openAddUserModal()',                  lbl: 'Tambah user' },
             'tab-keluar':         { t: 'Transaksi Keluar', s: 'Form barang keluar',        ico: 'ph ph-barcode',        act: "startBarcodeScan({ mode: 'OUT' })",       lbl: 'Scan Barcode' }
         };
@@ -13716,8 +14311,8 @@ let currentGroup = '', groupId = 0;
         // PENTING: ini hanya lapisan UI. Pembatasan sesungguhnya ada di backend
         // (requireRole_) sehingga menyembunyikan menu saja tidak bisa ditembus.
         const ROLE_TABS = {
-            'ADMIN':        ['tab-dashboard','tab-keluar','tab-riwayat-keluar','tab-masuk','tab-stock','tab-exp','tab-opname','tab-master','tab-recipe','tab-users'],
-            'MANAGER':      ['tab-dashboard','tab-keluar','tab-riwayat-keluar','tab-masuk','tab-stock','tab-exp','tab-opname','tab-master','tab-recipe'],
+            'ADMIN':        ['tab-dashboard','tab-keluar','tab-riwayat-keluar','tab-masuk','tab-stock','tab-exp','tab-opname','tab-master','tab-recipe','tab-convert','tab-users'],
+            'MANAGER':      ['tab-dashboard','tab-keluar','tab-riwayat-keluar','tab-masuk','tab-stock','tab-exp','tab-opname','tab-master','tab-recipe','tab-convert'],
             'STOCK KEEPER': ['tab-dashboard','tab-keluar','tab-riwayat-keluar','tab-masuk','tab-stock','tab-exp'],
             // --- Kompatibilitas role lama (dipetakan ke STOCK KEEPER) ---
             'STAFF':        ['tab-dashboard','tab-keluar','tab-riwayat-keluar','tab-masuk','tab-stock','tab-exp'],
@@ -14055,7 +14650,7 @@ let currentGroup = '', groupId = 0;
             if (btnAddOut) btnAddOut.style.display = canOut ? '' : 'none';
             const moreBtn = document.getElementById('mnav-more');
             if (moreBtn) {
-                const anyMore = ['tab-masuk', 'tab-opname', 'tab-master', 'tab-recipe', 'tab-users'].some(t => allowed.includes(t));
+                const anyMore = ['tab-masuk', 'tab-opname', 'tab-master', 'tab-recipe', 'tab-convert', 'tab-users'].some(t => allowed.includes(t));
                 moreBtn.style.display = anyMore ? '' : 'none';
             }
 
@@ -14070,6 +14665,10 @@ let currentGroup = '', groupId = 0;
             const canRecipe = allowed.includes('tab-recipe');
             const btnAddRecipe = document.getElementById('btn-add-recipe');
             if (btnAddRecipe) btnAddRecipe.style.display = canRecipe ? '' : 'none';
+
+            const canConvert = allowed.includes('tab-convert');
+            const btnAddConvert = document.getElementById('btn-add-convert');
+            if (btnAddConvert) btnAddConvert.style.display = canConvert ? '' : 'none';
 
             // [UPGRADE] Tombol Stock Opname & Laporan Opname — STOCK KEEPER tidak berhak.
             const canOpname = allowed.includes('tab-opname');
