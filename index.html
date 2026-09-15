@@ -5,34 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIGAP · CAFE KELAPA GADING</title>
 
-    <!-- ============================================================
-         [PERF] URUTAN MUAT DIRAPIKAN. PENYEBAB UTAMA "LAMBAT MASUK LOGIN".
-         ============================================================
-         Sebelumnya ada 8 berkas dari luar yang MEMBLOKIR render di bagian
-         kepala dokumen. Halaman ini berjalan di dalam iframe sandbox Apps
-         Script, jadi layar login baru bisa muncul setelah SEMUANYA selesai
-         diunduh.
-
-         Yang diubah:
-           1. Tailwind CDN DIHAPUS. Sudah diperiksa: tidak ada satu pun kelas
-              utilitas Tailwind yang dipakai di seluruh berkas ini. Kelas
-              `hidden` sudah punya definisi sendiri di lembar gaya bawah, dan
-              mode gelap memakai CSS `html.dark` buatan sendiri. Reset bawaan
-              Tailwind (preflight) disalin utuh ke lembar gaya itu, jadi
-              tampilan tetap sama persis. Yang hilang: unduhan sekitar 400 KB
-              plus kompilasi JIT atas sekitar 17.000 baris DOM pada SETIAP
-              kali halaman dibuka.
-           2. Font dimuat tanpa memblokir (trik media="print" lalu onload).
-           3. Pustaka yang tidak dipakai layar login diberi `defer`.
-           4. Pustaka berat yang hanya dipakai saat aksi tertentu (pemindai,
-              pembuat barcode, pembuat PDF) dimuat saat dibutuhkan saja.
-         ============================================================ -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" media="print" onload="this.media='all'; this.onload=null;">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"></noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>if (window.tailwind) tailwind.config = { darkMode: 'class' };</script>
     <script>
         // Terapkan tema sedini mungkin (sebelum render) untuk cegah flash warna salah.
         (function () {
@@ -43,7 +20,14 @@
             } catch (e) {}
         })();
     </script>
-    <script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Mesin cadangan pemindai: dipakai bila BarcodeDetector bawaan browser
+         tidak tersedia. Jalur utama tetap dekoder native yang jauh lebih cepat. -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script>
   // 1. MASUKKAN URL WEB APP BAPAK DI SINI
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz48djc7w965sC6C0Nf_0UHiRRfPTFildn4qz9pUVVfGpIkPfiVyvKnQKFoyF53_crX/exec";
 
@@ -85,127 +69,7 @@
     }
   };
 </script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" media="print" onload="this.media='all'; this.onload=null;">
-    <noscript><link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet"></noscript>
-    <!-- `defer`: tetap dijalankan berurutan dan tetap SEBELUM DOMContentLoaded,
-         jadi initDropdown()/Swal di skrip halaman aman — bedanya sekarang
-         unduhannya tidak lagi menahan tampilnya layar login. -->
-    <script defer src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script defer src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Mesin cadangan pemindai (html5-qrcode, ±400 KB), pembuat barcode
-         (bwip-js) dan pembuat PDF (jsPDF) TIDAK lagi ikut dimuat di awal.
-         Ketiganya hanya dipakai di balik aksi tertentu, jadi dimuat saat
-         dibutuhkan lewat SIGAPLib di bawah — dan dihangatkan diam-diam saat
-         browser sedang senggang supaya klik pertama tetap terasa instan. -->
-    <script>
-    (function () {
-        var cache = {};
-        var URLS = {
-            scanner: 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
-            barcode: 'https://cdnjs.cloudflare.com/ajax/libs/bwip-js/3.4.1/bwip-js-min.js',
-            pdf:     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
-        };
-        var READY = {
-            scanner: function () { return typeof window.Html5Qrcode !== 'undefined'; },
-            barcode: function () { return typeof window.bwipjs !== 'undefined'; },
-            pdf:     function () { return !!((window.jspdf && window.jspdf.jsPDF) || window.jsPDF); }
-        };
-        function load(url) {
-            if (cache[url]) return cache[url];
-            cache[url] = new Promise(function (resolve, reject) {
-                var el = document.createElement('script');
-                el.src = url; el.async = true;
-                el.onload  = function () { resolve(true); };
-                el.onerror = function () { delete cache[url]; reject(new Error('Gagal memuat ' + url)); };
-                (document.head || document.documentElement).appendChild(el);
-            });
-            return cache[url];
-        }
-        /** Pastikan satu pustaka siap. Selalu mengembalikan Promise<boolean>. */
-        function ensure(name) {
-            if (!URLS[name]) return Promise.resolve(false);
-            if (READY[name]()) return Promise.resolve(true);
-            return load(URLS[name]).then(function () { return READY[name](); })
-                                   .catch(function () { return false; });
-        }
-        /** Pemanasan saat browser senggang — tidak menahan apa pun. */
-        function warm() {
-            var go = function () { ensure('barcode'); };
-            if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 8000 });
-            else setTimeout(go, 4000);
-        }
-        window.SIGAPLib = { ensure: ensure, warm: warm, isReady: function (k) { return !!(READY[k] && READY[k]()); } };
-
-        // Mesin pemindai cadangan diunduh SEKARANG JUGA (async, tidak memblokir)
-        // dan HANYA pada browser yang tidak punya BarcodeDetector bawaan —
-        // yaitu satu-satunya browser yang benar-benar membutuhkannya.
-        //
-        // Ini penting: izin kamera hanya boleh diminta langsung dari sentuhan
-        // user. Kalau pustaka baru diunduh pada saat tombol Scan ditekan,
-        // rantai gestur itu putus dan sebagian browser (terutama iOS) menolak
-        // permintaan kamera. Karena unduhannya `async`, halaman login tetap
-        // tampil seketika — persis tujuan perubahan ini.
-        if (typeof window.BarcodeDetector === 'undefined') ensure('scanner');
-    })();
-    </script>
     <style>
-        /* ============================================================
-           [PERF] PREFLIGHT MANDIRI — PENGGANTI RESET BAWAAN TAILWIND CDN
-           ------------------------------------------------------------
-           Tailwind CDN dihapus karena tidak ada satu pun kelas utilitasnya
-           yang dipakai. Namun CDN itu juga menyuntikkan "preflight", yaitu
-           reset CSS yang dipakai sebagai dasar oleh seluruh tampilan di
-           berkas ini — catatan di aturan `body` di bawah menyebutkannya
-           secara langsung.
-
-           Blok berikut menyalin isi preflight Tailwind v3 apa adanya, jadi
-           TAMPILAN TETAP SAMA PERSIS, hanya saja sekarang:
-             • tidak ada unduhan ±400 KB,
-             • tidak ada kompilasi JIT atas ±17.000 baris DOM tiap halaman dibuka,
-             • tampilan tidak lagi berubah-ubah kalau CDN lambat atau gagal.
-
-           Ditempatkan PALING ATAS supaya seluruh aturan aplikasi di bawahnya
-           tetap menang — persis kedudukan layer `base` pada Tailwind.
-           ============================================================ */
-        *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: currentColor; }
-        html { line-height: 1.5; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; }
-        body { margin: 0; line-height: inherit; }
-        hr { height: 0; color: inherit; border-top-width: 1px; }
-        abbr:where([title]) { text-decoration: underline dotted; }
-        h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
-        a { color: inherit; text-decoration: inherit; }
-        b, strong { font-weight: bolder; }
-        code, kbd, samp, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 1em; }
-        small { font-size: 80%; }
-        sub, sup { font-size: 75%; line-height: 0; position: relative; vertical-align: baseline; }
-        sub { bottom: -0.25em; }
-        sup { top: -0.5em; }
-        table { text-indent: 0; border-color: inherit; border-collapse: collapse; }
-        button, input, optgroup, select, textarea { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; color: inherit; margin: 0; padding: 0; }
-        button, select { text-transform: none; }
-        button, [type='button'], [type='reset'], [type='submit'] { -webkit-appearance: button; background-color: transparent; background-image: none; }
-        :-moz-focusring { outline: auto; }
-        :-moz-ui-invalid { box-shadow: none; }
-        progress { vertical-align: baseline; }
-        ::-webkit-inner-spin-button, ::-webkit-outer-spin-button { height: auto; }
-        [type='search'] { -webkit-appearance: textfield; outline-offset: -2px; }
-        ::-webkit-search-decoration { -webkit-appearance: none; }
-        ::-webkit-file-upload-button { -webkit-appearance: button; font: inherit; }
-        summary { display: list-item; }
-        blockquote, dl, dd, h1, h2, h3, h4, h5, h6, hr, figure, p, pre { margin: 0; }
-        fieldset { margin: 0; padding: 0; }
-        legend { padding: 0; }
-        ol, ul, menu { list-style: none; margin: 0; padding: 0; }
-        textarea { resize: vertical; }
-        input::placeholder, textarea::placeholder { opacity: 1; color: #9ca3af; }
-        button, [role="button"] { cursor: pointer; }
-        :disabled { cursor: default; }
-        img, svg, video, canvas, audio, iframe, embed, object { display: block; vertical-align: middle; }
-        img, video { max-width: 100%; height: auto; }
-        [hidden] { display: none; }
-        /* ================= akhir preflight mandiri ================= */
-
         /* ============================================================
            THEME TOKENS — LIGHT MODE (default): putih premium + teal
            Dark Mode ("Cinema Executive"): html.dark → Deep Slate + Gold
@@ -3633,9 +3497,9 @@
         }
 
     </style>
-    <!-- bwip-js & jsPDF dipindahkan ke pemuatan on-demand (SIGAPLib) di atas:
-         keduanya hanya dipakai layar Cetak Barcode / Lembar Barcode, jadi tidak
-         perlu ikut menahan waktu muat halaman login. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bwip-js/3.4.1/bwip-js-min.js"></script>
+    <!-- [BARU] jsPDF: dipakai tombol "Download PDF A4" pada Lembar Barcode Master Item -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -6547,10 +6411,6 @@
             calYear  = jkt.getFullYear();
             calMonth = jkt.getMonth();
 
-            // [PERF] SweetAlert2 kini `defer`; pada titik ini skrip defer sudah
-            // dijalankan, jadi pembungkus haptic dipasang sekarang.
-            _wrapSwalHaptic();
-
             // Terapkan tema tersimpan (light default / dark Cinema Executive)
             _initTheme();
 
@@ -6620,13 +6480,9 @@
             tbody.innerHTML = html;
         }
 
-        // 1) Bungkus Swal.fire supaya semua dialog sukses/gagal memicu haptic (call-through, non-invasif).
-        //    [PERF] SweetAlert2 sekarang dimuat dengan `defer`, jadi belum ada saat
-        //    baris ini pertama dijalankan. Pembungkusan dibuat idempoten (dijaga
-        //    __hapticWrapped) dan dipanggil dua kali: sekarang, lalu sekali lagi
-        //    pada DOMContentLoaded — saat itu skrip defer dijamin sudah selesai.
-        //    Perilaku haptic-nya sama persis seperti sebelumnya.
-        function _wrapSwalHaptic() {
+        // Wiring aditif: haptic pada sukses/gagal dialog + tap, & auto-scroll input di mobile.
+        (function initNativeFeel() {
+            // 1) Bungkus Swal.fire supaya semua dialog sukses/gagal memicu haptic (call-through, non-invasif).
             if (window.Swal && typeof Swal.fire === 'function' && !Swal.__hapticWrapped) {
                 const _fire = Swal.fire.bind(Swal);
                 Swal.fire = function (...args) {
@@ -6640,11 +6496,6 @@
                 };
                 Swal.__hapticWrapped = true;
             }
-        }
-
-        // Wiring aditif: haptic pada sukses/gagal dialog + tap, & auto-scroll input di mobile.
-        (function initNativeFeel() {
-            _wrapSwalHaptic();
             // 2) Tap haptic ringan pada kontrol aksi utama (delegated, pasif).
             document.addEventListener('pointerdown', (e) => {
                 const t = e.target && e.target.closest && e.target.closest(
@@ -13682,19 +13533,8 @@ let currentGroup = '', groupId = 0;
                 wrap.style.display = 'none';
                 return;
             }
-            // [PERF] bwip-js dimuat saat dibutuhkan. Bila belum siap, pustaka
-            // diambil dulu lalu fungsi ini dijalankan ulang — jadi user tidak
-            // perlu memuat ulang halaman seperti sebelumnya.
             if (typeof bwipjs === 'undefined') {
                 wrap.style.display = 'none';
-                if (window.SIGAPLib) {
-                    _nwState('wait', 'Menyiapkan pembuat QR…');
-                    SIGAPLib.ensure('barcode').then(function (ok) {
-                        if (ok) nwRenderCode(payload);
-                        else _nwState('err', 'Gagal memuat library barcode (bwip-js). Periksa koneksi internet lalu coba lagi.');
-                    });
-                    return;
-                }
                 _nwState('err', 'Library barcode (bwip-js) belum termuat. Periksa koneksi internet lalu muat ulang halaman.');
                 return;
             }
@@ -14458,161 +14298,6 @@ let currentGroup = '', groupId = 0;
             _cookieRemove(TOKEN_KEY);
         }
 
-        // =====================================================================
-        // [FIX KONEKSI] SIGAPNet — LAPISAN PEMANGGILAN BACKEND
-        // ---------------------------------------------------------------------
-        // Tiga keluhan berikut sebetulnya SATU rantai sebab-akibat yang sama:
-        //
-        //   a) "unexpected token '<', "<!DOCTYPE" ... is not valid JSON"
-        //   b) "notif time out"
-        //   c) "Koneksi server gagal. Coba lagi."
-        //
-        // Di seluruh berkas ini TIDAK ADA satu pun fetch() — semua pemanggilan
-        // memakai google.script.run. Jadi pesan (a) BUKAN berasal dari kode
-        // aplikasi, melainkan dari transport internal google.script.run: ketika
-        // cookie sesi Google kedaluwarsa, atau browser sedang login DI BANYAK
-        // AKUN Google sekaligus (/u/0 vs /u/1), permintaan internalnya dijawab
-        // HALAMAN LOGIN GOOGLE (HTML) — bukan JSON. Pustaka klien Apps Script
-        // mencoba mem-parse HTML itu dan gagal.
-        //
-        // Sejak saat itu SEMUA pemanggilan berikutnya ikut mati: sebagian
-        // menggantung tanpa jawaban (muncul sebagai "time out"), sebagian jatuh
-        // ke withFailureHandler (muncul sebagai "Koneksi server gagal").
-        //
-        // Keadaan ini tidak bisa diperbaiki dari dalam pemanggilan itu sendiri —
-        // yang bisa dilakukan adalah MENGENALINYA dan MEMULIHKANNYA:
-        //   • setiap panggilan diberi batas waktu (panggilan menggantung tidak
-        //     lagi diam selamanya),
-        //   • gangguan sesaat dicoba ulang dengan jeda bertambah,
-        //   • bila terbukti transportnya yang putus, user diberi satu tombol
-        //     jelas untuk membuka ulang aplikasi lewat URL /exec induk (BUKAN
-        //     reload iframe sandbox, yang justru menghasilkan layar kosong).
-        // =====================================================================
-        const SIGAPNet = (function () {
-            let _execUrl      = '';
-            let _recoveryOpen = false;
-
-            // URL /exec induk disiapkan sejak awal supaya tombol pemulihan tetap
-            // berfungsi justru pada saat koneksi sedang bermasalah.
-            try {
-                if (window.google && google.script && google.script.url) {
-                    google.script.url.getLocation(function (loc) {
-                        if (loc && loc.href) _execUrl = loc.href;
-                    });
-                }
-            } catch (e) {}
-
-            /** Ciri khas transport Apps Script yang dijawab HTML, bukan JSON. */
-            function _isTransportBreak(err) {
-                const m = (err && (err.message || err.toString())) || '';
-                return /DOCTYPE|Unexpected token|not valid JSON|SyntaxError|Unexpected end of JSON/i.test(m);
-            }
-
-            /** Satu dialog pemulihan yang jelas — tidak pernah menumpuk. */
-            function showRecovery(alasan) {
-                if (_recoveryOpen) return;
-                _recoveryOpen = true;
-                const pesan =
-                    '<div style="text-align:left; font-size:0.86rem; line-height:1.55;">' +
-                    '<p style="margin:0 0 10px;">' + (alasan || 'Sambungan ke server terputus.') + '</p>' +
-                    '<p style="margin:0 0 6px;"><b>Penyebab paling sering:</b></p>' +
-                    '<ul style="margin:0 0 10px 18px; padding:0; list-style:disc;">' +
-                    '<li>Sesi Google di browser sudah kedaluwarsa.</li>' +
-                    '<li>Browser sedang masuk ke <b>lebih dari satu akun Google</b> sekaligus.</li>' +
-                    '<li>Koneksi internet terputus saat data sedang diambil.</li>' +
-                    '</ul>' +
-                    '<p style="margin:0;">Tekan tombol di bawah untuk membuka ulang aplikasi. ' +
-                    'Bila masih berulang, buka aplikasi di jendela penyamaran atau keluar dulu dari akun Google lain.</p>' +
-                    '</div>';
-                const buka = function () {
-                    _recoveryOpen = false;
-                    try {
-                        if (_execUrl) { (window.top || window).location.href = _execUrl; return; }
-                    } catch (e) {}
-                    // Cadangan: buka di tab baru bila navigasi frame induk ditolak.
-                    try { if (_execUrl) window.open(_execUrl, '_blank'); } catch (e) {}
-                };
-                if (window.Swal && typeof Swal.fire === 'function') {
-                    Swal.fire({
-                        title: 'Sambungan Terputus',
-                        html: pesan,
-                        icon: 'error',
-                        allowOutsideClick: false,
-                        confirmButtonText: 'Buka Ulang Aplikasi',
-                        confirmButtonColor: 'var(--accent)',
-                        background: 'var(--surface)',
-                        color: 'var(--text)'
-                    }).then(function (r) { if (r.isConfirmed) buka(); else _recoveryOpen = false; });
-                } else {
-                    _recoveryOpen = false;
-                    if (_execUrl && window.confirm('Sambungan ke server terputus. Buka ulang aplikasi?')) buka();
-                }
-            }
-
-            /**
-             * Panggil fungsi backend sebagai Promise.
-             *   opts.timeout  — batas waktu per percobaan (ms), default 45 detik
-             *   opts.attempts — jumlah percobaan, default 2
-             *   opts.onRecover— true: tampilkan dialog pemulihan saat transport putus
-             */
-            function call(fn, args, opts) {
-                opts = opts || {};
-                const timeout  = opts.timeout  || 45000;
-                const attempts = (opts.attempts == null) ? 2 : opts.attempts;
-                const params   = args || [];
-                return new Promise(function (resolve, reject) {
-                    let percobaan = 0, timeoutBeruntun = 0;
-                    const jalan = function () {
-                        percobaan++;
-                        let selesai = false;
-                        const timer = setTimeout(function () {
-                            if (selesai) return;
-                            selesai = true; timeoutBeruntun++;
-                            ulangAtauGagal(new Error('TIMEOUT'));
-                        }, timeout);
-                        const sukses = function (res) {
-                            if (selesai) return;
-                            selesai = true; clearTimeout(timer);
-                            resolve(res);
-                        };
-                        const gagal = function (err) {
-                            if (selesai) return;
-                            selesai = true; clearTimeout(timer);
-                            ulangAtauGagal(err);
-                        };
-                        const ulangAtauGagal = function (err) {
-                            // Transport terbukti putus: mencoba ulang tidak ada
-                            // gunanya, seluruh panggilan berikutnya pasti gagal juga.
-                            if (_isTransportBreak(err)) {
-                                if (opts.onRecover !== false) showRecovery('Server menjawab dengan halaman HTML, bukan data.');
-                                reject(err); return;
-                            }
-                            if (percobaan < attempts) {
-                                setTimeout(jalan, 600 * percobaan);   // jeda bertambah
-                                return;
-                            }
-                            // Semua percobaan habis karena menggantung tanpa jawaban —
-                            // pola khas transport Apps Script yang sudah putus.
-                            if (timeoutBeruntun >= attempts && opts.onRecover === true) {
-                                showRecovery('Server tidak menjawab setelah beberapa kali percobaan.');
-                            }
-                            reject(err);
-                        };
-                        try {
-                            if (!(window.google && google.script && google.script.run)) {
-                                gagal(new Error('google.script.run tidak tersedia')); return;
-                            }
-                            const runner = google.script.run.withSuccessHandler(sukses).withFailureHandler(gagal);
-                            runner[fn].apply(runner, params);
-                        } catch (e) { gagal(e); }
-                    };
-                    jalan();
-                });
-            }
-
-            return { call: call, showRecovery: showRecovery, execUrl: function () { return _execUrl; } };
-        })();
-
         // ===================== AUTH & ROLE =====================
         let currentUser = null;
 
@@ -14686,7 +14371,7 @@ let currentGroup = '', groupId = 0;
             const token = _authToken();
             if (!token) return _showLoginScreen();
             showLoader(true);
-            _verifySession(token);
+            _verifySession(token, 0);
         }
 
         /**
@@ -14697,46 +14382,30 @@ let currentGroup = '', groupId = 0;
          * boleh membuat user ter-logout: dicoba ulang beberapa kali, dan token
          * tetap tersimpan supaya sesi pulih sendiri saat aplikasi dibuka lagi.
          */
-        function _verifySession(token) {
-            // [FIX LOGIN LAMBAT] Dulu: setiap sesi yang sudah habis SELALU melewati
-            // 3x percobaan berjeda 1,5 detik sebelum layar login muncul — karena
-            // backend tidak pernah mengirim penanda `sessionInvalid`, sehingga
-            // jawaban tegas "sesi habis" tidak bisa dibedakan dari gangguan
-            // koneksi. Backend kini mengirim penanda itu, jadi jawaban pasti
-            // langsung ditindaklanjuti, dan percobaan ulang hanya dipakai untuk
-            // gangguan koneksi yang sesungguhnya (persis maksud semula).
-            let loginSudahTampil = false;
-
-            // Jaring pengaman: kalau server menggantung tanpa jawaban, jangan
-            // biarkan user menatap loader kosong tanpa batas.
-            const revealLogin = setTimeout(() => {
-                loginSudahTampil = true;
+        function _verifySession(token, attempt) {
+            const gagal = () => {
+                if (attempt < 2) { setTimeout(() => _verifySession(token, attempt + 1), 1500); return; }
                 showLoader(false);
-                _showLoginScreen();          // token sengaja TIDAK dihapus
-            }, 2500);
-
-            SIGAPNet.call('checkSession', [token], { timeout: 15000, attempts: 3, onRecover: true })
-                .then(res => {
-                    clearTimeout(revealLogin);
+                _showLoginScreen();   // token sengaja TIDAK dihapus
+            };
+            google.script.run
+                .withSuccessHandler(res => {
                     if (res && res.success) {
                         showLoader(false);
                         currentUser = res.user;
-                        _startApp();          // _startApp() menyembunyikan layar login
+                        _startApp();
                         return;
                     }
-                    // Server MEMASTIKAN sesi tidak berlaku -> buang token, tampilkan
-                    // login sekarang juga. Tidak ada lagi jeda percobaan ulang.
-                    if (res && res.sessionInvalid) clearAuthToken();
-                    showLoader(false);
-                    if (!loginSudahTampil) _showLoginScreen();
+                    if (res && res.sessionInvalid) {
+                        showLoader(false);
+                        clearAuthToken();
+                        _showLoginScreen();
+                        return;
+                    }
+                    gagal();
                 })
-                .catch(() => {
-                    // Gangguan koneksi: token DIPERTAHANKAN supaya sesi bisa pulih
-                    // sendiri saat aplikasi dibuka lagi — sama seperti sebelumnya.
-                    clearTimeout(revealLogin);
-                    showLoader(false);
-                    if (!loginSudahTampil) _showLoginScreen();
-                });
+                .withFailureHandler(gagal)
+                .checkSession(token);
         }
 
         function _showLoginScreen() {
@@ -14757,18 +14426,10 @@ let currentGroup = '', groupId = 0;
             }
             btn.disabled = true;
             btn.innerHTML = '<i class="ph ph-circle-notch" style="animation:spin 1s linear infinite; display:inline-block; font-size:1.2rem;"></i> Memeriksa...';
-            const pulihkanTombol = () => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="ph ph-sign-in" style="font-size:1.2rem;"></i> Masuk';
-            };
-
-            // [FIX KONEKSI] Login lewat SIGAPNet: ada batas waktu, ada percobaan
-            // ulang otomatis untuk gangguan sesaat, dan bila transport Apps Script
-            // memang putus user menerima tombol pemulihan — bukan sekadar pesan
-            // "Koneksi server gagal. Coba lagi." yang buntu.
-            SIGAPNet.call('loginUser', [{ username, password }], { timeout: 25000, attempts: 3, onRecover: true })
-                .then(res => {
-                    pulihkanTombol();
+            google.script.run
+                .withSuccessHandler(res => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ph ph-sign-in" style="font-size:1.2rem;"></i> Masuk';
                     if (res && res.success) {
                         saveAuthToken(res.token);   // sesi bertahan sampai user menekan Keluar
                         currentUser = res.user;
@@ -14780,14 +14441,13 @@ let currentGroup = '', groupId = 0;
                         errEl.style.display = 'block';
                     }
                 })
-                .catch(err => {
-                    pulihkanTombol();
-                    const habisWaktu = err && /TIMEOUT/i.test(err.message || '');
-                    errEl.textContent = habisWaktu
-                        ? 'Server belum menjawab. Periksa koneksi lalu coba lagi.'
-                        : 'Koneksi server gagal. Coba lagi.';
+                .withFailureHandler(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ph ph-sign-in" style="font-size:1.2rem;"></i> Masuk';
+                    errEl.textContent = 'Koneksi server gagal. Coba lagi.';
                     errEl.style.display = 'block';
-                });
+                })
+                .loginUser({ username, password });
         }
 
         function doLogout() {
@@ -14915,80 +14575,48 @@ let currentGroup = '', groupId = 0;
         // sisanya berjalan di latar belakang (background) tanpa menahan layar loading.
         function _bootstrapData() {
             const start = _currentMonthStart();
-
-            // =============================================================
-            // [FIX UTAMA KONEKSI] BADAI PERMINTAAN SAAT BOOT DIHENTIKAN
-            // -------------------------------------------------------------
-            // Versi lama menembakkan 6 google.script.run SEKALIGUS begitu master
-            // data tiba: getOutboundData, getStockCardData, getExpMonitorData,
-            // getMasterStats, getItemImages, getSmartExpRecommendation.
-            //
-            // Enam permintaan itu menjadi ENAM eksekusi Apps Script terpisah.
-            // Masing-masing membayar cold start sendiri, membuka spreadsheet
-            // sendiri, dan membaca ulang sheet yang sama: sheet IN terbaca 4x
-            // dan sheet OUT 5x untuk satu kali buka aplikasi. Apps Script
-            // membatasi jumlah eksekusi serentak per user, jadi sebagian
-            // permintaan mengantre lalu menggantung — persis gejala
-            // "notif time out" dan "Koneksi server gagal".
-            //
-            // Ironisnya backend SUDAH punya getBootstrapData() yang menyatukan
-            // semuanya dalam satu eksekusi — komentar di kode lama pun menyebut
-            // "digabung jadi 1 round-trip" — tetapi fungsi itu tidak pernah
-            // benar-benar dipanggil. Sekarang dipakai.
-            //
-            // Sesudah perbaikan: TIDAK PERNAH lebih dari satu permintaan
-            // berjalan bersamaan.
-            //   1. getMasterData      -> buka blokir UI secepat mungkin (cached)
-            //   2. getBootstrapData   -> stock + keluar + exp + statistik SKU
-            //   3. getItemImages      -> metadata foto
-            //   4. getSmartExp...     -> rekomendasi EXP
-            // Semua fungsi apply dan seluruh aturan bisnisnya TIDAK berubah.
-            // =============================================================
-
-            // Langkah 1 — Master Item (penting untuk Form Keluar & Scan).
+            
+            // PRIORITAS 1: Master Item (Sangat penting untuk Form Keluar & Scan)
             if (typeof DashBoot !== 'undefined') DashBoot.tick('master');
-            SIGAPNet.call('getMasterData', [], { timeout: 45000, attempts: 2, onRecover: true })
-                .then(res => {
+            google.script.run
+                .withSuccessHandler(res => {
                     if (res && res.success) _applyMasterData(res);
-
+                    
                     // Buka blokir UI! User sudah bisa langsung mengisi Form Keluar / Scan Barcode.
                     if (typeof DashBoot !== 'undefined') DashBoot.finish();
+                    
+                    // PRIORITAS 2: Bulan berjalan (Riwayat Keluar) di-load di background
+                    google.script.run.withSuccessHandler(outRes => {
+                        if (outRes && outRes.success) _applyOutboundData(outRes);
+                        if (typeof renderDashboard === 'function') renderDashboard();
+                    }).getOutboundData();
+                    
+                    // PRIORITAS 3: Data Stock di-load di background
+                    google.script.run.withSuccessHandler(stkRes => {
+                        if (stkRes && stkRes.success) _applyStockData(stkRes);
+                    }).getStockCardData();
+                    
+                    // PRIORITAS 4: Expired Monitor di-load di background
+                    google.script.run.withSuccessHandler(expRes => {
+                        if (expRes && expRes.success) _applyExpData(expRes, start);
+                    }).getExpMonitorData({ startDate: start });
 
-                    // Langkah 2 — sisa data dashboard dalam SATU permintaan.
-                    return SIGAPNet.call('getBootstrapData', [{ startDate: start }],
-                                         { timeout: 90000, attempts: 2, onRecover: true });
-                })
-                .then(res => {
-                    const d = (res && res.success && res.data) ? res.data : null;
-                    if (!d) throw new Error('BOOTSTRAP_KOSONG');
-
-                    // Bentuk tiap sub-hasil sama persis dengan endpoint aslinya,
-                    // jadi handler yang dipakai pun handler yang sudah ada.
-                    if (d.outbound && d.outbound.success) _applyOutboundData(d.outbound);
-                    if (d.stock    && d.stock.success)    _applyStockData(d.stock);
-                    if (d.exp      && d.exp.success)      _applyExpData(d.exp, start);
-                    // KPI "SKU Aktif" — isi yang sama dengan hasil refreshMasterStats().
-                    if (d.masterStats && d.masterStats.success) globalMasterStats = d.masterStats.data;
-
-                    if (typeof renderDashboard === 'function') renderDashboard();
-                })
-                .catch(err => {
-                    // Master gagal total -> jalur lama; hanya bagian dashboard yang
-                    // gagal -> muat ulang sisanya satu per satu (tetap berurutan).
-                    if (!masterItems || !masterItems.length) { _startAppFallback(); return; }
-                    console.warn('getBootstrapData gagal, memakai jalur terpisah:', err && err.message);
-                    loadStockDataSilent();
-                    loadExpDataSilent();
-                    loadOutboundDataSilent();
+                    // [UPGRADE] PRIORITAS 5: statistik Master Item untuk KPI SKU Aktif
                     refreshMasterStats();
+
+                    // [UPGRADE] PRIORITAS 6: metadata foto item (dipakai Master
+                    // Item & Kartu Stock). Satu permintaan, lalu disimpan sebagai
+                    // Map untuk lookup O(1) saat render tabel.
+                    loadItemImages();
+
+                    // [SMART EXP] PRIORITAS 7: rekomendasi EXP di latar belakang —
+                    // tidak menahan tampilan dashboard, hasilnya mengisi sub-indikator
+                    // "perlu tindakan" pada kartu Exp Kritis saat tiba.
+                    loadSmartExp(false);
+
                 })
-                .then(() => {
-                    // Langkah 3 & 4 — dirantai, bukan ditembakkan bersamaan.
-                    loadItemImages(() => loadSmartExp(false));
-                    // Pustaka berat dihangatkan saat browser senggang, setelah
-                    // semua permintaan data selesai — tidak mengganggu apa pun.
-                    if (window.SIGAPLib) SIGAPLib.warm();
-                });
+                .withFailureHandler(() => _startAppFallback())
+                .getMasterData();
         }
 
         // Fallback: 4 panggilan terpisah (perilaku lama, tetap kompatibel penuh).
@@ -16612,14 +16240,6 @@ let currentGroup = '', groupId = 0;
         // ===================== BARCODE GENERATOR & PRINT =====================
         let currentPrintBarcode = '';
         function openBarcodePrintModal(namaItem) {
-            // [PERF] bwip-js kini dimuat saat dibutuhkan; ambil dulu bila belum siap.
-            if (typeof bwipjs === 'undefined' && window.SIGAPLib) {
-                SIGAPLib.ensure('barcode').then(function (ok) {
-                    if (ok) openBarcodePrintModal(namaItem);
-                    else showAlert('Error', 'Gagal memuat library barcode (bwip-js). Periksa koneksi internet lalu coba lagi.', 'error');
-                });
-                return;
-            }
             // Hilangkan kode di awal (misal: "[IB11600002]")
             currentPrintBarcode = stripCode(namaItem) || namaItem;
             
@@ -16842,15 +16462,7 @@ let currentGroup = '', groupId = 0;
 
         function openBarcodeSheetModal() {
             if (!_canAccess('tab-master')) return _denyAccess('Master Item');
-            // [PERF] bwip-js kini dimuat saat dibutuhkan; ambil dulu bila belum siap.
             if (typeof bwipjs === 'undefined') {
-                if (window.SIGAPLib) {
-                    SIGAPLib.ensure('barcode').then(function (ok) {
-                        if (ok) openBarcodeSheetModal();
-                        else showAlert('Library Belum Siap', 'Gagal memuat pembuat barcode (bwip-js). Periksa koneksi internet lalu coba lagi.', 'error');
-                    });
-                    return;
-                }
                 return showAlert('Library Belum Siap', 'Pembuat barcode (bwip-js) belum termuat. Periksa koneksi internet lalu coba lagi.', 'error');
             }
             const modal = document.getElementById('barcode-sheet-modal');
@@ -17029,17 +16641,8 @@ let currentGroup = '', groupId = 0;
             if (_bsBusy)          return showAlert('Sedang Diproses', 'Barcode masih disiapkan. Tunggu sebentar lalu coba lagi.', 'info');
             if (!_bsLabels.length) return showAlert('Tidak Ada Data', 'Tidak ada item AKTIF yang bisa dicetak.', 'info');
 
-            // [PERF] jsPDF tidak lagi ikut dimuat di awal halaman — hanya diambil
-            // ketika tombol Download PDF benar-benar ditekan.
             const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
             if (!jsPDFCtor) {
-                if (window.SIGAPLib) {
-                    SIGAPLib.ensure('pdf').then(function (ok) {
-                        if (ok) downloadBarcodeSheetPdf();
-                        else showAlert('Library Belum Siap', 'Gagal memuat pembuat PDF (jsPDF). Periksa koneksi internet lalu coba lagi.', 'error');
-                    });
-                    return;
-                }
                 return showAlert('Library Belum Siap', 'Pembuat PDF (jsPDF) belum termuat. Periksa koneksi internet lalu coba lagi.', 'error');
             }
 
