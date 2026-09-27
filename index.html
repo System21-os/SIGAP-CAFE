@@ -4653,7 +4653,7 @@
                     <label class="lbl" for="convert-item">Item <span style="color:var(--red);">*</span></label>
                     <select id="convert-item" placeholder="Ketik / pilih nama item..."></select>
                     <p style="font-size:0.68rem; color:var(--text-dim); margin:5px 0 0; line-height:1.5;">
-                        Pilih dari Master Item agar cocok dengan data transaksi. Nama di luar Master tetap bisa diketik untuk data lama.
+                        Otomatis dari Sheet AWAL (ARRAYFORMULA) — tidak dapat diubah di sini.
                     </p>
                 </div>
 
@@ -6385,7 +6385,7 @@
                         </div>
                         <p class="rcp-hint">
                             <i class="ph ph-info"></i>
-                            <span>Satu item boleh punya <b>beberapa UOM</b> dengan faktor berbeda. Dipakai <b>Smart EXP</b> dan <b>Laporan Stock Opname</b>.</span>
+                            <span>Satu item boleh punya <b>beberapa UOM</b> dengan faktor berbeda. Dipakai <b>Smart EXP</b> dan <b>Laporan Stock Opname</b>. <b>Nama Item</b> &amp; <b>UOM</b> otomatis dari Sheet AWAL — yang dapat diubah hanya <b>CONVERT</b> dan <b>Uom_convert</b>.</span>
                         </p>
                     </div>
                 </div>
@@ -10058,9 +10058,8 @@ const sorted = [...data].sort((a, b) => {
                             '<button onclick="openEditConvertModal(' + r.row + ')" title="Ubah konversi" aria-label="Ubah konversi"' +
                                 ' style="background:var(--accent-soft); border:1px solid var(--accent-brd); color:var(--accent); border-radius:8px; padding:6px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; font-family:var(--font-body);">' +
                                 '<i class="ph ph-pencil-simple" style="font-size:1rem;"></i></button>' +
-                            '<button onclick="deleteConvertRow(' + r.row + ')" title="Hapus konversi" aria-label="Hapus konversi"' +
-                                ' style="background:var(--red-soft); border:1px solid rgba(220,38,38,0.25); color:var(--red); border-radius:8px; padding:6px 9px; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; font-family:var(--font-body);">' +
-                                '<i class="ph ph-trash" style="font-size:1rem;"></i></button>' +
+                            // [CONVERT] Tombol hapus ditiadakan: menghapus baris menggeser
+                            // hasil ARRAYFORMULA Nama Item/UOM dari Sheet AWAL.
                         '</div>' +
                     '</td>';
                 frag.appendChild(tr);
@@ -10139,8 +10138,14 @@ const sorted = [...data].sort((a, b) => {
             document.body.style.overflow = '';
         }
 
+        const CONVERT_LOCKED_INFO = 'Nama Item & UOM di Sheet CONVERT terisi otomatis (ARRAYFORMULA dari Sheet AWAL). ' +
+                                    'Yang dapat diubah hanya CONVERT dan Uom_convert pada baris yang sudah ada.';
+
         function openAddConvertModal() {
             if (!_canAccess('tab-convert')) return _denyAccess('Convert');
+            // [CONVERT] Tambah data dinonaktifkan — fungsi dipertahankan untuk
+            // pemanggil lama, tetapi tidak lagi membuka form tambah.
+            return showAlert('Tambah Data Dinonaktifkan', CONVERT_LOCKED_INFO, 'info');
             _setTxt('convert-modal-title', 'Tambah Convert');
             document.getElementById('convert-row').value       = '';
             document.getElementById('convert-orig-item').value = '';
@@ -10166,12 +10171,19 @@ const sorted = [...data].sort((a, b) => {
             document.getElementById('convert-value').value     = r.convert;
             _openConvertModal();
             if (convertSelect) {
+                if (typeof convertSelect.enable === 'function') convertSelect.enable();
                 if (!convertSelect.options[r.namaItem]) {
                     convertSelect.addOption({ value: r.namaItem, text: stripCode(r.namaItem), sub: '' });
                 }
                 convertSelect.setValue(r.namaItem, true);
+                // [CONVERT] Nama Item hanya ditampilkan — tidak bisa diganti.
+                if (typeof convertSelect.disable === 'function') convertSelect.disable();
             }
+            // [CONVERT] UOM hanya ditampilkan — tidak bisa diubah.
+            const uomEl = document.getElementById('convert-uom');
+            if (uomEl) { uomEl.readOnly = true; uomEl.disabled = true; }
             _cvtPreview();
+            setTimeout(() => { const v = document.getElementById('convert-value'); if (v) v.focus(); }, 120);
         }
 
         function saveConvert() {
@@ -10182,8 +10194,10 @@ const sorted = [...data].sort((a, b) => {
             const uomConvert = (document.getElementById('convert-uomhasil').value || '').trim();
             const raw        = (document.getElementById('convert-value').value || '').trim();
 
-            if (!namaItem) return showAlert('Perhatian', 'Item wajib dipilih.', 'warning');
-            if (!uom)      return showAlert('Perhatian', 'UOM wajib diisi.', 'warning');
+            // [CONVERT] Hanya mode UBAH. Nama Item & UOM tidak divalidasi di sini
+            // karena tidak ikut disimpan (milik ARRAYFORMULA Sheet AWAL); baris
+            // dengan UOM kosong di sheet pun tetap bisa diubah konversinya.
+            if (!row) return showAlert('Tambah Data Dinonaktifkan', CONVERT_LOCKED_INFO, 'info');
             if (raw === '' || !(parseFloat(raw) > 0)) {
                 return showAlert('Perhatian', 'CONVERT harus berupa angka lebih besar dari 0.', 'warning');
             }
@@ -10214,18 +10228,20 @@ const sorted = [...data].sort((a, b) => {
                 showAlert('Error', 'Koneksi Server Gagal: ' + (err ? err.message : ''), 'error');
             };
 
-            if (row) {
-                payload.row      = parseInt(row, 10);
-                payload.origItem = document.getElementById('convert-orig-item').value;
-                payload.origUom  = document.getElementById('convert-orig-uom').value;
-                google.script.run.withSuccessHandler(done).withFailureHandler(fail).updateConvert(_withAuth(payload));
-            } else {
-                google.script.run.withSuccessHandler(done).withFailureHandler(fail).addConvert(_withAuth(payload));
-            }
+            payload.row      = parseInt(row, 10);
+            payload.origItem = document.getElementById('convert-orig-item').value;
+            payload.origUom  = document.getElementById('convert-orig-uom').value;
+            // Nama Item & UOM dikirim = nilai asli baris (hanya konteks);
+            // backend tidak menulisnya.
+            payload.namaItem = payload.origItem;
+            payload.uom      = payload.origUom;
+            google.script.run.withSuccessHandler(done).withFailureHandler(fail).updateConvert(_withAuth(payload));
         }
 
         function deleteConvertRow(row) {
             if (!_canAccess('tab-convert')) return _denyAccess('Convert');
+            // [CONVERT] Hapus data dinonaktifkan (lihat CONVERT_LOCKED_INFO).
+            return showAlert('Hapus Data Dinonaktifkan', CONVERT_LOCKED_INFO, 'info');
             const r = globalConvertData.find(x => x.row === row);
             if (!r) return showAlert('Tidak Ditemukan', 'Data Convert sudah berubah. Muat ulang halaman lalu coba lagi.', 'warning');
 
@@ -16407,9 +16423,10 @@ const sorted = [...data].sort((a, b) => {
             const btnAddRecipe = document.getElementById('btn-add-recipe');
             if (btnAddRecipe) btnAddRecipe.style.display = canRecipe ? '' : 'none';
 
-            const canConvert = allowed.includes('tab-convert');
+            // [CONVERT] Tambah data dinonaktifkan untuk SEMUA role: Nama Item & UOM
+            // di Sheet CONVERT terisi ARRAYFORMULA dari Sheet AWAL.
             const btnAddConvert = document.getElementById('btn-add-convert');
-            if (btnAddConvert) btnAddConvert.style.display = canConvert ? '' : 'none';
+            if (btnAddConvert) btnAddConvert.style.display = 'none';
 
             // [UPGRADE] Tombol Stock Opname & Laporan Opname — STOCK KEEPER tidak berhak.
             const canOpname = allowed.includes('tab-opname');
